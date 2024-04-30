@@ -1,5 +1,6 @@
 package com.jransani.demoparkapi.web.exception;
 
+import com.jransani.demoparkapi.exception.CpfUniqueViolationException;
 import com.jransani.demoparkapi.exception.EntityNotFoundException;
 import com.jransani.demoparkapi.exception.PasswordInvalidException;
 import com.jransani.demoparkapi.exception.UsernameUniqueViolationException;
@@ -48,7 +49,7 @@ public class ApiExceptionHandler {
                 .body(new ErrorMessage(request, HttpStatus.NOT_FOUND, ex.getMessage()));
 
     }
-    @ExceptionHandler(UsernameUniqueViolationException.class)
+    @ExceptionHandler({UsernameUniqueViolationException.class, CpfUniqueViolationException.class})
     public ResponseEntity<ErrorMessage>uniqueViolationException(RuntimeException ex,
                                                                         HttpServletRequest request){
         log.error("Api Error -", ex);
