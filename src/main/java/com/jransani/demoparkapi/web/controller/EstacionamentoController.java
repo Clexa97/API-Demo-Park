@@ -4,8 +4,10 @@ package com.jransani.demoparkapi.web.controller;
 import com.jransani.demoparkapi.entity.ClienteVaga;
 import com.jransani.demoparkapi.jwt.JwtUserDetails;
 import com.jransani.demoparkapi.repository.projection.ClienteVagaProjection;
+import com.jransani.demoparkapi.service.ClienteService;
 import com.jransani.demoparkapi.service.ClienteVagaService;
 import com.jransani.demoparkapi.service.EstacionamentoService;
+import com.jransani.demoparkapi.service.JasperService;
 import com.jransani.demoparkapi.web.dto.EstacionamentoCreateDto;
 import com.jransani.demoparkapi.web.dto.EstacionamentoResponseDto;
 import com.jransani.demoparkapi.web.dto.PageableDto;
@@ -22,6 +24,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,12 +32,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
 import java.net.URI;
 
 import static io.swagger.v3.oas.annotations.enums.ParameterIn.PATH;
@@ -48,6 +53,8 @@ public class EstacionamentoController {
 
     private final EstacionamentoService estacionamentoService;
     private final ClienteVagaService clienteVagaService;
+    private final ClienteService clienteService;
+    private final JasperService jasperService;
 
     @Operation(summary = "Operação de check-in", description = "Recurso para dar entrada de um veículo no estacionamento. " +
             "Requisição exige uso de um bearer token. Acesso restrito a Role='ADMIN'",
@@ -199,6 +206,33 @@ public class EstacionamentoController {
         Page<ClienteVagaProjection> projection = clienteVagaService.buscarTodosPorUsuarioId(user.getId(), pageable);
         PageableDto dto = PageableMapper.toDto(projection);
         return ResponseEntity.ok(dto);
+    }
+
+    @Operation(summary = "Relatório em PDF com os estacionamentos do cliente",
+            description = "Recurso para gerar um relatório com os estacionamentos do cliente. " +
+                    "Requisição exige uso de um bearer token.",
+            security = @SecurityRequirement(name = "security"),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Relatório gerado com sucesso",
+                            content = @Content(mediaType = "application/pdf",
+                                    schema = @Schema(implementation = EstacionamentoResponseDto.class))),
+                    @ApiResponse(responseCode = "403", description = "Recurso não permito ao perfil de ADMIN",
+                            content = @Content(mediaType = " application/json;charset=UTF-8",
+                                    schema = @Schema(implementation = ErrorMessage.class)))
+            })
+    @GetMapping("/relatorio")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<Void> getRelatorio(HttpServletResponse response, @AuthenticationPrincipal JwtUserDetails user) throws IOException {
+        String cpf = clienteService.buscarPorUsuarioId(user.getId()).getCpf();
+        jasperService.addParams("CPF", cpf);
+
+        byte[] bytes = jasperService.gerarPdf();
+
+        response.setContentType(MediaType.APPLICATION_PDF_VALUE);
+        response.setHeader("Content-disposition", "inline; filename=" + System.currentTimeMillis() + ".pdf");
+        response.getOutputStream().write(bytes);
+
+        return ResponseEntity.ok().build();
     }
 
 
