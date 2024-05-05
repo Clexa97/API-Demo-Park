@@ -3,6 +3,7 @@ package com.jransani.demoparkapi.service;
 import com.jransani.demoparkapi.entity.Vaga;
 import com.jransani.demoparkapi.exception.CodigoUniqueViolationException;
 import com.jransani.demoparkapi.exception.EntityNotFoundException;
+import com.jransani.demoparkapi.exception.VagaDisponivelException;
 import com.jransani.demoparkapi.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,21 +23,20 @@ public class VagaService {
         try{
             return vagaRepository.save(vaga);
         }catch (DataIntegrityViolationException ex){
-            throw new CodigoUniqueViolationException(String.format("Vaga com código %s já cadastrada", vaga.getCodigo())
-            );
+            throw new CodigoUniqueViolationException("Vaga", vaga.getCodigo());
         }
     }
 
     @Transactional(readOnly = true)
     public Vaga buscarPorCodigo(String codigo){
         return vagaRepository.findByCodigo(codigo).orElseThrow(
-                () -> new EntityNotFoundException(String.format("Vaga com cógio %s não foi encontrada", codigo))
+                () -> new EntityNotFoundException("Vaga", codigo)
         );
     }
     @Transactional(readOnly = true)
     public Vaga buscarPorVagaLivre() {
         return vagaRepository.findFirstByStatus(LIVRE).orElseThrow(
-                () -> new EntityNotFoundException("Nenhuma vaga livre foi encontrada")
+                () -> new VagaDisponivelException()
         );
     }
 }

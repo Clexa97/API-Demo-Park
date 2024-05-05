@@ -2,6 +2,7 @@ package com.jransani.demoparkapi.service;
 
 import com.jransani.demoparkapi.entity.ClienteVaga;
 import com.jransani.demoparkapi.exception.EntityNotFoundException;
+import com.jransani.demoparkapi.exception.ReciboCheckInNotFoundException;
 import com.jransani.demoparkapi.repository.ClienteVagaRepository;
 import com.jransani.demoparkapi.repository.projection.ClienteVagaProjection;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +25,7 @@ public class ClienteVagaService {
     @Transactional(readOnly = true)
     public ClienteVaga buscarPorRecibo(String recibo) {
         return repository.findByReciboAndDataSaidaIsNull(recibo).orElseThrow(
-                () -> new EntityNotFoundException(
-                        String.format("Recibo %s não encontrado no sistema ou check-out já realizado", recibo))
+                () -> new ReciboCheckInNotFoundException(String.format(recibo))
         );
     }
 
